@@ -1,2 +1,2 @@
 azure-functions
-azure-cosmos==4.7.0
+azure-cosmos
