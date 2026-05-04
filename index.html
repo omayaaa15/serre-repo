@@ -308,32 +308,19 @@
     }
 
     function confirmerPct() {
-        const val = parseFloat(document.getElementById('pct-input').value);
-        if (isNaN(val) || val < 0 || val > 100) return;
+    const val = parseFloat(document.getElementById('pct-input').value);
+    if (isNaN(val) || val < 0 || val > 100) return;
 
-        const envoi = () => fetch('/commande', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ action: 'ouvrir_pct', valeur: val })
-        }).then(() => refreshData());
-
-
-        if (currentMode === 'automatique') {
-            fetch('/commande', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ action: 'toggle_mode' })
-            }).then(() => {
-                currentMode = 'manuel';
-                document.getElementById('btn-auto').classList.remove('active-mode');
-                document.getElementById('btn-manuel').classList.add('active-mode');
-                setTimeout(envoi, 2500);
-            });
-        } else {
-            envoi();
-        }
-    }
-
+    fetch('https://serre-function-v2-hta0ddcnfwh3a9dp.canadacentral-01.azurewebsites.net/api/send-command', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: 'ouvrir_pct', valeur: val })
+    })
+    .then(() => {
+        alert("Valeur de " + val + "% envoyée !");
+        refreshData();
+    });
+}
     function majAlertes(data) {
         const anomalie     = document.getElementById('alert-anomalie');
         const deviation    = document.getElementById('alert-deviation');
@@ -353,27 +340,22 @@
         fetch('https://serre-function-v2-hta0ddcnfwh3a9dp.canadacentral-01.azurewebsites.net/api/serre-data')
             .then(r => r.json())
             .then(data => {
-                // Mise à jour des textes de base
                 document.getElementById('temp').innerText        = data.temperature;
                 document.getElementById('lum').innerText         = data.luminosite;
                 document.getElementById('ouvr-auto').innerText   = data.ouverture_automatique;
                 document.getElementById('distance').innerText    = data.distance_cm ?? '--';
                 document.getElementById('avertissement').innerText = data.avertissement || '';
 
-                // Gestion des deux barres de progression
                 const reelle = data.ouverture_reelle;
                 const cible  = data.ouverture_automatique;
 
-                // Affichage de l'ouverture réelle (arrondie pour plus de propreté)
                 const reelleAffichage = typeof reelle === 'number' ? reelle.toFixed(1) : reelle;
                 document.getElementById('ouvr-reelle-val').innerText = reelleAffichage;
                 document.getElementById('barre-reelle').style.width  = reelle + '%';
 
-                // Affichage de la cible automatique
                 document.getElementById('ouvr-cible-val').innerText  = cible;
                 document.getElementById('barre-cible').style.width   = (cible !== '--' && cible !== null ? cible : 0) + '%';
 
-                // Synchronisation du mode (automatique ou manuel)
                 if (data.mode && data.mode !== currentMode) {
                     currentMode = data.mode;
                     document.getElementById('btn-auto').classList.toggle('active-mode', currentMode === 'automatique');
@@ -382,7 +364,6 @@
                     document.getElementById('btn-confirmer').disabled = currentMode === 'automatique';
                 }
 
-                // Mise à jour des indicateurs visuels (moteur, boutons et alertes)
                 majMoteur(data.direction ?? 'Arrêt');
                 majBoutons(reelle);
                 majAlertes(data);
@@ -391,34 +372,19 @@
     }
     
     function envoyerCommande(cmd) {
-        if ((cmd === 'ouvrir' || cmd === 'fermer') && currentMode === 'automatique') {
-            fetch('/commande', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ action: 'toggle_mode' })
-            }).then(() => {
-                setTimeout(() => {
-                    fetch('/commande', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ action: cmd })
-                    }).then(() => {
-                        currentMode = 'manuel';
-                        document.getElementById('btn-auto').classList.remove('active-mode');
-                        document.getElementById('btn-manuel').classList.add('active-mode');
-                        document.getElementById('pct-input').disabled = false;
-                        document.getElementById('btn-confirmer').disabled = false;
-                        refreshData();
-                    });
-                }, 2500); // 2.5s (pour que interface.py a le temps)
-            });
-        } else {
-            fetch('/commande', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ action: cmd })
-            }).then(() => refreshData());
-        }
+        // Envoi direct à Azure Function pour le contrôle à distance
+        fetch('https://serre-function-v2-hta0ddcnfwh3a9dp.canadacentral-01.azurewebsites.net/api/send-command', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: cmd })
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log("Commande Cloud envoyée : " + cmd);
+                refreshData();
+            }
+        })
+        .catch(error => console.error('Erreur commande Cloud:', error));
     }
 
     document.getElementById('pct-input').addEventListener('keydown', e => {
