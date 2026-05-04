@@ -6,62 +6,46 @@ from azure.iot.hub import IoTHubRegistryManager
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
-@app.route(route="serre-data")
-def serre_data(req: func.HttpRequest) -> func.HttpResponse:
-    client = CosmosClient(os.environ["COSMOS_ENDPOINT"], os.environ["COSMOS_KEY"])
-    container = client.get_database_client("serreBD").get_container_client("data")
+# Headers de sécurité pour autoriser ton site GitHub
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json"
+}
 
-    items = list(container.query_items(
-        query="SELECT TOP 1 * FROM c ORDER BY c._ts DESC",
-        enable_cross_partition_query=True
-    ))
+@app.route(route="data") # Route simplifiée : /api/data
+def get_serre_data(req: func.HttpRequest) -> func.HttpResponse:
+    if req.method == "OPTIONS":
+        return func.HttpResponse(status_code=200, headers=CORS_HEADERS)
 
-    # Préparation des headers CORS pour tout le monde
-    headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Content-Type": "application/json"
-    }
+    try:
+        client = CosmosClient(os.environ["COSMOS_ENDPOINT"], os.environ["COSMOS_KEY"])
+        container = client.get_database_client("serreBD").get_container_client("data")
 
-    if items:
-        doc = items[0]
-        msg = doc.get("Body", doc)  
-        return func.HttpResponse(
-            json.dumps({
-                "temperature": msg.get("temperature"),
-                "luminosite": msg.get("luminosite"),
-                "mode": msg.get("mode"),
-                "ouverture_reelle": msg.get("ouverture_reelle"),
-                "ouverture_automatique": msg.get("ouverture_automatique"),
-                "erreur": msg.get("erreur"),
-                "avertissement": msg.get("avertissement")
-            }),
-            status_code=200,
-            headers=headers
-        )
+        items = list(container.query_items(
+            query="SELECT TOP 1 * FROM c ORDER BY c._ts DESC",
+            enable_cross_partition_query=True
+        ))
 
-    # Correction ici : on ajoute les headers même si c'est vide !
-    return func.HttpResponse(
-        json.dumps({"erreur": "non", "mode": "inconnu"}),
-        status_code=200,
-        headers=headers
-    )
+        if items:
+            doc = items[0]
+            msg = doc.get("Body", doc)
+            return func.HttpResponse(json.dumps(msg), status_code=200, headers=CORS_HEADERS)
 
-    # Vous devrez ajouter 'azure-iot-hub' dans votre requirements.txt
+        return func.HttpResponse(json.dumps({"erreur": "Aucune donnée"}), status_code=200, headers=CORS_HEADERS)
+    except Exception as e:
+        return func.HttpResponse(json.dumps({"erreur": str(e)}), status_code=500, headers=CORS_HEADERS)
 
+@app.route(route="commande", methods=["POST", "OPTIONS"]) # Route simplifiée : /api/commande
+def send_serre_command(req: func.HttpRequest) -> func.HttpResponse:
+    if req.method == "OPTIONS":
+        return func.HttpResponse(status_code=200, headers=CORS_HEADERS)
 
-@app.route(route="send-command", methods=["POST"])
-def send_command(req: func.HttpRequest) -> func.HttpResponse:
     try:
         data = req.get_json()
-        action = data.get('action')
-        
-        # Connexion au Hub pour envoyer un message à l'objet
         registry_manager = IoTHubRegistryManager(os.environ["IOTHUB_CONNECTION_STRING"])
-        
-        # On envoie la commande à l'appareil 'serre_01'
         registry_manager.send_c2d_message("serre_01", json.dumps(data))
-        
-        return func.HttpResponse("Commande envoyée", status_code=200)
+        return func.HttpResponse("OK", status_code=200, headers=CORS_HEADERS)
     except Exception as e:
-        return func.HttpResponse(f"Erreur: {str(e)}", status_code=500)
+        return func.HttpResponse(str(e), status_code=500, headers=CORS_HEADERS)
