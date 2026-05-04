@@ -8,18 +8,20 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 @app.route(route="serre-data")
 def serre_data(req: func.HttpRequest) -> func.HttpResponse:
-    client = CosmosClient(
-        os.environ["COSMOS_ENDPOINT"],
-        os.environ["COSMOS_KEY"]
-    )
-    container = client\
-        .get_database_client("serreBD")\
-        .get_container_client("data")
+    client = CosmosClient(os.environ["COSMOS_ENDPOINT"], os.environ["COSMOS_KEY"])
+    container = client.get_database_client("serreBD").get_container_client("data")
 
     items = list(container.query_items(
         query="SELECT TOP 1 * FROM c ORDER BY c._ts DESC",
         enable_cross_partition_query=True
     ))
+
+    # Préparation des headers CORS pour tout le monde
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Content-Type": "application/json"
+    }
 
     if items:
         doc = items[0]
@@ -34,15 +36,15 @@ def serre_data(req: func.HttpRequest) -> func.HttpResponse:
                 "erreur": msg.get("erreur"),
                 "avertissement": msg.get("avertissement")
             }),
-            mimetype="application/json",
-            headers={"Access-Control-Allow-Origin": "*"},
-            status_code=200
+            status_code=200,
+            headers=headers
         )
 
+    # Correction ici : on ajoute les headers même si c'est vide !
     return func.HttpResponse(
         json.dumps({"erreur": "non", "mode": "inconnu"}),
-        mimetype="application/json",
-        status_code=200
+        status_code=200,
+        headers=headers
     )
 
     # Vous devrez ajouter 'azure-iot-hub' dans votre requirements.txt
