@@ -21,7 +21,7 @@ def serre_data(req: func.HttpRequest) -> func.HttpResponse:
     ))
 
     if items:
-        msg = items[0]
+        msg = items[0].get("Body", items[0])  # ✅ cherche dans Body d'abord
         return func.HttpResponse(
             json.dumps({
                 "temperature": msg.get("temperature"),
