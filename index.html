@@ -337,7 +337,7 @@
     }
     
     function refreshData() {
-        fetch('https://serre-function-v2-hta0ddcnfwh3a9dp.canadacentral-01.azurewebsites.net/serre-data')
+        fetch('https://serre-function-v2-hta0ddcnfwh3a9dp.canadacentral-01.azurewebsites.net/api/serre-data')
             .then(r => r.json())
             .then(data => {
                 document.getElementById('temp').innerText        = data.temperature;
