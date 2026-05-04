@@ -2,6 +2,7 @@ import azure.functions as func
 import json
 import os
 from azure.cosmos import CosmosClient
+from azure.iot.hub import IoTHubRegistryManager
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -22,7 +23,7 @@ def serre_data(req: func.HttpRequest) -> func.HttpResponse:
 
     if items:
         doc = items[0]
-        msg = doc.get("Body", doc)  # ✅ cherche dans Body, sinon à la racine
+        msg = doc.get("Body", doc)  
         return func.HttpResponse(
             json.dumps({
                 "temperature": msg.get("temperature"),
@@ -43,3 +44,22 @@ def serre_data(req: func.HttpRequest) -> func.HttpResponse:
         mimetype="application/json",
         status_code=200
     )
+
+    # Vous devrez ajouter 'azure-iot-hub' dans votre requirements.txt
+
+
+@app.route(route="send-command", methods=["POST"])
+def send_command(req: func.HttpRequest) -> func.HttpResponse:
+    try:
+        data = req.get_json()
+        action = data.get('action')
+        
+        # Connexion au Hub pour envoyer un message à l'objet
+        registry_manager = IoTHubRegistryManager(os.environ["IOTHUB_CONNECTION_STRING"])
+        
+        # On envoie la commande à l'appareil 'serre_01'
+        registry_manager.send_c2d_message("serre_01", json.dumps(data))
+        
+        return func.HttpResponse("Commande envoyée", status_code=200)
+    except Exception as e:
+        return func.HttpResponse(f"Erreur: {str(e)}", status_code=500)
