@@ -337,7 +337,7 @@
     }
     
     function refreshData() {
-        fetch('https://serre-function-v2-hta0ddcnfwh3a9dp.canadacentral-01.azurewebsites.net/api/serre-data')
+        fetch('https://serre-function-v2-hta0ddcnfwh3a9dp.canadacentral-01.azurewebsites.net/api/data')
             .then(r => r.json())
             .then(data => {
                 document.getElementById('temp').innerText        = data.temperature;
@@ -373,7 +373,7 @@
     
     function envoyerCommande(cmd) {
         // Envoi direct à Azure Function pour le contrôle à distance
-        fetch('https://serre-function-v2-hta0ddcnfwh3a9dp.canadacentral-01.azurewebsites.net/api/send-command', {
+        fetch('https://serre-function-v2-hta0ddcnfwh3a9dp.canadacentral-01.azurewebsites.net/api/commande', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ action: cmd })
