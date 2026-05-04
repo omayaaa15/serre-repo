@@ -354,38 +354,38 @@
             .then(r => r.json())
             .then(data => {
                 // Mise à jour des textes de base
-                document.getElementById('temp').innerText        = data.temperature;[cite: 5]
-                document.getElementById('lum').innerText         = data.luminosite;[cite: 5]
-                document.getElementById('ouvr-auto').innerText   = data.ouverture_automatique;[cite: 5]
-                document.getElementById('distance').innerText    = data.distance_cm ?? '--';[cite: 5]
-                document.getElementById('avertissement').innerText = data.avertissement || '';[cite: 5]
+                document.getElementById('temp').innerText        = data.temperature;
+                document.getElementById('lum').innerText         = data.luminosite;
+                document.getElementById('ouvr-auto').innerText   = data.ouverture_automatique;
+                document.getElementById('distance').innerText    = data.distance_cm ?? '--';
+                document.getElementById('avertissement').innerText = data.avertissement || '';
 
                 // Gestion des deux barres de progression
-                const reelle = data.ouverture_reelle;[cite: 5]
-                const cible  = data.ouverture_automatique;[cite: 5]
+                const reelle = data.ouverture_reelle;
+                const cible  = data.ouverture_automatique;
 
                 // Affichage de l'ouverture réelle (arrondie pour plus de propreté)
                 const reelleAffichage = typeof reelle === 'number' ? reelle.toFixed(1) : reelle;
-                document.getElementById('ouvr-reelle-val').innerText = reelleAffichage;[cite: 5]
-                document.getElementById('barre-reelle').style.width  = reelle + '%';[cite: 5]
+                document.getElementById('ouvr-reelle-val').innerText = reelleAffichage;
+                document.getElementById('barre-reelle').style.width  = reelle + '%';
 
                 // Affichage de la cible automatique
-                document.getElementById('ouvr-cible-val').innerText  = cible;[cite: 5]
-                document.getElementById('barre-cible').style.width   = (cible !== '--' && cible !== null ? cible : 0) + '%';[cite: 5]
+                document.getElementById('ouvr-cible-val').innerText  = cible;
+                document.getElementById('barre-cible').style.width   = (cible !== '--' && cible !== null ? cible : 0) + '%';
 
                 // Synchronisation du mode (automatique ou manuel)
-                if (data.mode && data.mode !== currentMode) {[cite: 5]
-                    currentMode = data.mode;[cite: 5]
-                    document.getElementById('btn-auto').classList.toggle('active-mode', currentMode === 'automatique');[cite: 5]
-                    document.getElementById('btn-manuel').classList.toggle('active-mode', currentMode === 'manuel' || currentMode === 'manuelle');[cite: 5]
-                    document.getElementById('pct-input').disabled = currentMode === 'automatique';[cite: 5]
-                    document.getElementById('btn-confirmer').disabled = currentMode === 'automatique';[cite: 5]
+                if (data.mode && data.mode !== currentMode) {
+                    currentMode = data.mode;
+                    document.getElementById('btn-auto').classList.toggle('active-mode', currentMode === 'automatique');
+                    document.getElementById('btn-manuel').classList.toggle('active-mode', currentMode === 'manuel' || currentMode === 'manuelle');
+                    document.getElementById('pct-input').disabled = currentMode === 'automatique';
+                    document.getElementById('btn-confirmer').disabled = currentMode === 'automatique';
                 }
 
                 // Mise à jour des indicateurs visuels (moteur, boutons et alertes)
-                majMoteur(data.direction ?? 'Arrêt');[cite: 5]
-                majBoutons(reelle);[cite: 11]
-                majAlertes(data);[cite: 11]
+                majMoteur(data.direction ?? 'Arrêt');
+                majBoutons(reelle);
+                majAlertes(data);
             })
             .catch(error => console.error('Erreur lors de la récupération des données Azure:', error));
     }
